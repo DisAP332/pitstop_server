@@ -2,21 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const { Client } = require("pg");
 const client = new Client({
-    user: "doadmin",
-    password: "AVNS_h-9q6TuL2ZVoLCYnzXo",
-    host: "db-pitstop-do-user-14443352-0.g.db.ondigitalocean.com",
-    port: process.env.PORT_DB,
-    database: process.env.DB_NAME,
+  user: process.env.USERNAME_DB,
+  password: process.env.PASSWORD_DB,
+  host: process.env.HOST_DB,
+  port: process.env.PORT_DB,
+  database: process.env.DB_NAME,
 });
 const connect = () => {
-    client
-        .connect()
-        .then(() => {
-        console.log("Connected to PostgreSQL database");
+  client
+    .connect()
+    .then(() => {
+      console.log("Connected to PostgreSQL database");
     })
-        .catch((err) => {
-        console.log(client);
-        console.error("Error connecting to PostgreSQL database", err);
+    .catch((err) => {
+      console.log(client);
+      console.error("Error connecting to PostgreSQL database", err);
     });
 };
 // Example query
@@ -30,6 +30,6 @@ const connect = () => {
 //   client.end();
 // });
 const db_methods = {
-    connect,
+  connect,
 };
 exports.default = db_methods;

@@ -4,4 +4,9 @@
 
 node_modules
 
-*.ts
+*.js
+*.crt
+*.pem
+
+dist
+*.txt

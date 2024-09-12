@@ -7,8 +7,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const passport_1 = __importDefault(require("passport"));
 const passport_local_1 = require("passport-local");
-const user_controller_1 = __importDefault(require("../../crud/user/user_controller"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const user_controller_1 = __importDefault(require("../../crm/user/user_controller"));
 // ***************************************************************************************** //
 // begin hashing section of auth
 // Define the number of salt rounds for server-side hashing
@@ -63,83 +62,18 @@ passport_1.default.use(new passport_local_1.Strategy(async (username, clientpwd,
     }
 }));
 // End passport Local Strategy
-// ********************************************************************* //
-// being JWT section
-// JWT issuing function
-const issue_jwt = (user) => {
-    const _id = user.id;
-    const expiresIn = "15m";
-    const payload = {
-        sub: _id,
-        iat: Date.now(),
-    };
-    const signedToken = jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET, { expiresIn });
-    console.log(`A JWT was issued to: ${user.id}`);
-    return {
-        token: "Bearer " + signedToken,
-        expires: expiresIn,
-    };
-};
-// refresh token
-const refresh_access_token = (req, res) => {
-    // Assuming the refresh token is stored in req.cookies.refreshToken as "Bearer <token>"
-    const bearerToken = req.cookies.refreshToken.token;
-    console.log("attempting to refresh a token");
-    console.log("Request Headers:", req.headers);
-    console.log("Cookies:", req.cookies); // Should show parsed cookies
-    // Remove the "Bearer " prefix if it exists
-    const refreshToken = bearerToken?.startsWith("Bearer ")
-        ? bearerToken.slice(7)
-        : bearerToken;
-    if (!refreshToken) {
-        return res
-            .status(401)
-            .json({ success: false, message: "No token provided" });
-    }
-    jsonwebtoken_1.default.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            console.error("Token verification error:", err.message);
-            return res
-                .status(403)
-                .json({ success: false, message: "Invalid token" });
-        }
-        console.log(decoded);
-        // Issue a new access token
-        const newAccessToken = auth.issue_jwt(decoded);
-        return res.json({
-            success: true,
-            accessToken: newAccessToken,
-        });
-    });
-};
-// verify JWT
-const authenticate_token = (req, res, next) => {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1]; // Bearer Token
-    if (token == null)
-        return res.sendStatus(401); // No token provided
-    jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err)
-            return res.sendStatus(403); // Invalid token
-        req.user = user;
-        next();
-    });
-};
 // end password verification via passport section
 // ************************************************************************** \\
 // rate limiter to prevent brute force attacks.
 const limiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit each IP to 10 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     message: "Too many requests from this IP, please try again after 15 minutes",
 });
 const auth = {
     hash_password,
     limiter,
-    issue_jwt,
-    authenticate_token,
-    refresh_access_token,
 };
 exports.default = auth;

@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendResponse = void 0;
 // Standardized response structure
-const sendResponse = (res, statusCode, success, message, data = null) => {
+const sendResponse = (res, statusCode, success, message, payload = null) => {
     res.status(statusCode).json({
         success,
         message,
-        data,
+        payload,
     });
 };
 exports.sendResponse = sendResponse;

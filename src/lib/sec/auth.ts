@@ -1,11 +1,9 @@
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import User from "../../crud/user/user_model";
+import User from "../../crm/user/user_model";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import user_controller from "../../crud/user/user_controller";
-import jwt from "jsonwebtoken";
-import { Request, Response, NextFunction } from "express";
+import user_controller from "../../crm/user/user_controller";
 
 // ***************************************************************************************** //
 // begin hashing section of auth
@@ -81,94 +79,6 @@ passport.use(
 );
 // End passport Local Strategy
 
-// ********************************************************************* //
-// being JWT section
-
-// JWT issuing function
-const issue_jwt = (user: User): { token: string; expires: string } => {
-  const _id = user.id;
-  const expiresIn = "15m";
-
-  const payload = {
-    sub: _id,
-    iat: Date.now(),
-  };
-
-  const signedToken = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn });
-
-  console.log(`A JWT was issued to: ${user.id}`);
-
-  return {
-    token: "Bearer " + signedToken,
-    expires: expiresIn,
-  };
-};
-
-// refresh token
-
-const refresh_access_token = (req: Request, res: Response) => {
-  // Assuming the refresh token is stored in req.cookies.refreshToken as "Bearer <token>"
-  const bearerToken = req.cookies.refreshToken.token;
-  console.log("attempting to refresh a token");
-  console.log("Request Headers:", req.headers);
-  console.log("Cookies:", req.cookies); // Should show parsed cookies
-
-  // Remove the "Bearer " prefix if it exists
-  const refreshToken = bearerToken?.startsWith("Bearer ")
-    ? bearerToken.slice(7)
-    : bearerToken;
-
-  if (!refreshToken) {
-    return res
-      .status(401)
-      .json({ success: false, message: "No token provided" });
-  }
-
-  jwt.verify(
-    refreshToken,
-    process.env.JWT_SECRET!,
-    (err: jwt.VerifyErrors | null, decoded: any) => {
-      if (err) {
-        console.error("Token verification error:", err.message);
-        return res
-          .status(403)
-          .json({ success: false, message: "Invalid token" });
-      }
-
-      console.log(decoded);
-
-      // Issue a new access token
-      const newAccessToken = auth.issue_jwt(decoded);
-
-      return res.json({
-        success: true,
-        accessToken: newAccessToken,
-      });
-    }
-  );
-};
-
-// verify JWT
-
-const authenticate_token = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const authHeader = req.headers["authorization"];
-
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer Token
-
-  if (token == null) return res.sendStatus(401); // No token provided
-
-  jwt.verify(token, process.env.JWT_SECRET!, (err, user) => {
-    if (err) return res.sendStatus(403); // Invalid token
-
-    req.user = user;
-    next();
-  });
-};
-
 // end password verification via passport section
 // ************************************************************************** \\
 
@@ -185,9 +95,6 @@ const limiter = rateLimit({
 const auth = {
   hash_password,
   limiter,
-  issue_jwt,
-  authenticate_token,
-  refresh_access_token,
 };
 
 export default auth;

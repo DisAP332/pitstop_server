@@ -6,11 +6,11 @@ export const sendResponse = <T>(
   statusCode: number,
   success: boolean,
   message: string,
-  data: T | null = null
+  payload: T | null = null
 ) => {
   res.status(statusCode).json({
     success,
     message,
-    data,
+    payload,
   });
 };

@@ -1,21 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const buildWhereClause = (id) => {
+const buildWhereClause = (id, field = "id") => {
     const entityId = Number(id);
     if (isNaN(entityId)) {
         return null; // Invalid ID
     }
-    return { id: entityId }; // Return the correctly typed where clause
+    return { [field]: entityId }; // Return the correctly typed where clause
 };
 // ************************** create ************************************** \\
-const createEntity = async (req, model, // Sequelize model
+const createEntity = async (data, model, // Sequelize model
 entityName) => {
     try {
-        const entity = await model.create(req.body); // Sequelize create method
+        const entity = await model.create(data.body);
         return {
             success: true,
             message: `${entityName} created successfully.`,
-            data: entity,
+            payload: entity,
         };
     }
     catch (error) {
@@ -27,19 +27,18 @@ entityName) => {
     }
 };
 // ************************** read ************************************** \\
-const readEntity = async (model, // Sequelize model
-entityName, id) => {
+const readEntity = async (id, model, // Sequelize model
+entityName, include, whereField = "id" // Optional field to query against, defaults to 'id'
+) => {
     try {
-        let entity;
-        // Use the utility function to build the where clause
-        const whereClause = buildWhereClause(id);
+        const whereClause = buildWhereClause(id, whereField);
         if (!whereClause) {
             return {
                 success: false,
                 message: `${entityName} ID must be a valid number.`,
             };
         }
-        entity = await model.findOne({ where: whereClause }); // Sequelize findOne by ID
+        const entity = await model.findOne({ where: whereClause, include });
         if (!entity) {
             return {
                 success: false,
@@ -49,7 +48,7 @@ entityName, id) => {
         return {
             success: true,
             message: `${entityName} fetched successfully.`,
-            data: entity,
+            payload: entity,
         };
     }
     catch (error) {
@@ -61,10 +60,9 @@ entityName, id) => {
     }
 };
 // ************************** update ************************************** \\
-const updateEntity = async (req, model, // Sequelize model
-entityName, id) => {
+const updateEntity = async (id, data, model, // Sequelize model
+entityName) => {
     try {
-        // Use the utility function to build the where clause
         const whereClause = buildWhereClause(id);
         if (!whereClause) {
             return {
@@ -72,7 +70,7 @@ entityName, id) => {
                 message: `${entityName} ID must be a valid number.`,
             };
         }
-        const [updatedRowsCount, updatedRows] = await model.update(req.body, {
+        const [updatedRowsCount, updatedRows] = await model.update(data.body, {
             where: whereClause,
             returning: true, // To return the updated rows
         });
@@ -85,7 +83,7 @@ entityName, id) => {
         return {
             success: true,
             message: `${entityName} updated successfully.`,
-            data: updatedRows[0],
+            payload: updatedRows[0],
         };
     }
     catch (error) {
@@ -97,10 +95,9 @@ entityName, id) => {
     }
 };
 // ************************** delete ************************************** \\
-const deleteEntity = async (model, // Sequelize model
-entityName, id) => {
+const deleteEntity = async (id, model, // Sequelize model
+entityName) => {
     try {
-        // Use the utility function to build the where clause
         const whereClause = buildWhereClause(id);
         if (!whereClause) {
             return {

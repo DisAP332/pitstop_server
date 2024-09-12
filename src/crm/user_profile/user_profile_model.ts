@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../../../db/sequelize";
-import User from "../user_model";
+import sequelize from "../../db/sequelize";
+import User from "../user/user_model";
 
 interface UserProfileAttributes {
   id: number;
@@ -39,6 +39,7 @@ UserProfile.init(
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      unique: true,
       references: {
         model: User,
         key: "id",

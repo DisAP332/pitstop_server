@@ -1,13 +1,13 @@
 import { Router } from "express";
-import auth from "../../../lib/sec/auth";
 import user_profile_controller from "./user_profile_controller";
+import token_actions from "../../lib/sec/jwt";
 
 const router = Router();
 
 // Route to update user information
 router.put(
   "/",
-  auth.authenticate_token,
+  token_actions.authenticateTokenRouteCheck("access"),
   user_profile_controller.update_user_profile
 );
 
@@ -16,7 +16,7 @@ router.get("/", user_profile_controller.get_user_profile);
 
 router.post(
   "/",
-  auth.authenticate_token,
+  token_actions.authenticateTokenRouteCheck("access"),
   user_profile_controller.create_user_profile
 );
 

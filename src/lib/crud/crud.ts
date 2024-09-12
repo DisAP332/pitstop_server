@@ -1,36 +1,38 @@
 import { Request, Response } from "express";
-import { sendResponse } from "../utility/response";
-import { Model, ModelStatic, WhereOptions } from "sequelize"; // Import Sequelize Model
+import { Includeable, Model, ModelStatic, WhereOptions } from "sequelize"; // Import Sequelize Model
 
 interface CrudResult<T> {
   success: boolean;
   message: string;
-  data?: T; // Optional: only present on success
+  payload?: T; // Optional: only present on success
 }
 
-const buildWhereClause = (id: string): WhereOptions | null => {
+const buildWhereClause = (
+  id: string,
+  field: string = "id"
+): WhereOptions | null => {
   const entityId = Number(id);
 
   if (isNaN(entityId)) {
     return null; // Invalid ID
   }
 
-  return { id: entityId }; // Return the correctly typed where clause
+  return { [field]: entityId }; // Return the correctly typed where clause
 };
 
 // ************************** create ************************************** \\
 
 const createEntity = async <T extends Model>(
-  req: Request,
+  data: Request,
   model: ModelStatic<T>, // Sequelize model
   entityName: string
 ): Promise<CrudResult<T>> => {
   try {
-    const entity = await model.create(req.body); // Sequelize create method
+    const entity = await model.create(data.body);
     return {
       success: true,
       message: `${entityName} created successfully.`,
-      data: entity,
+      payload: entity,
     };
   } catch (error) {
     console.error(`Failed to create ${entityName}:`, error);
@@ -44,15 +46,14 @@ const createEntity = async <T extends Model>(
 // ************************** read ************************************** \\
 
 const readEntity = async <T extends Model>(
+  id: string,
   model: ModelStatic<T>, // Sequelize model
   entityName: string,
-  id: string
+  include?: Includeable[],
+  whereField: string = "id" // Optional field to query against, defaults to 'id'
 ): Promise<CrudResult<T>> => {
   try {
-    let entity;
-
-    // Use the utility function to build the where clause
-    const whereClause = buildWhereClause(id);
+    const whereClause = buildWhereClause(id, whereField);
 
     if (!whereClause) {
       return {
@@ -60,7 +61,7 @@ const readEntity = async <T extends Model>(
         message: `${entityName} ID must be a valid number.`,
       };
     }
-    entity = await model.findOne({ where: whereClause }); // Sequelize findOne by ID
+    const entity = await model.findOne({ where: whereClause, include });
 
     if (!entity) {
       return {
@@ -72,7 +73,7 @@ const readEntity = async <T extends Model>(
     return {
       success: true,
       message: `${entityName} fetched successfully.`,
-      data: entity,
+      payload: entity,
     };
   } catch (error) {
     console.error(`Failed to fetch ${entityName}(s):`, error);
@@ -86,13 +87,12 @@ const readEntity = async <T extends Model>(
 // ************************** update ************************************** \\
 
 const updateEntity = async <T extends Model>(
-  req: Request,
+  id: string,
+  data: Request,
   model: ModelStatic<T>, // Sequelize model
-  entityName: string,
-  id: string
+  entityName: string
 ): Promise<CrudResult<T>> => {
   try {
-    // Use the utility function to build the where clause
     const whereClause = buildWhereClause(id);
 
     if (!whereClause) {
@@ -102,7 +102,7 @@ const updateEntity = async <T extends Model>(
       };
     }
 
-    const [updatedRowsCount, updatedRows] = await model.update(req.body, {
+    const [updatedRowsCount, updatedRows] = await model.update(data.body, {
       where: whereClause,
       returning: true, // To return the updated rows
     });
@@ -117,7 +117,7 @@ const updateEntity = async <T extends Model>(
     return {
       success: true,
       message: `${entityName} updated successfully.`,
-      data: updatedRows[0],
+      payload: updatedRows[0],
     };
   } catch (error) {
     console.error(`Failed to update ${entityName}:`, error);
@@ -131,12 +131,11 @@ const updateEntity = async <T extends Model>(
 // ************************** delete ************************************** \\
 
 const deleteEntity = async <T extends Model>(
+  id: string,
   model: ModelStatic<T>, // Sequelize model
-  entityName: string,
-  id: string
+  entityName: string
 ): Promise<CrudResult<null>> => {
   try {
-    // Use the utility function to build the where clause
     const whereClause = buildWhereClause(id);
 
     if (!whereClause) {
